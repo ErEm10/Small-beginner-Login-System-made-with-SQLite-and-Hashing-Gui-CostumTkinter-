@@ -1,5 +1,6 @@
 import customtkinter as ctk
-from auth import login, registrieren
+from auth import login, registrieren, passwordstrecheck
+import re
 
 def create_gui():
     app = ctk.CTk()
@@ -46,13 +47,42 @@ def create_gui():
     reg_password_entry.pack(pady=(0, 7))
 
     def handle_reg():
-        result = registrieren(reg_username_entry.get().strip(), reg_password_entry.get().strip())
-        print(result)
+        username = reg_username_entry.get().strip()
+        password = reg_password_entry.get().strip()
 
+        if not passwordstrecheck(username, password):
+            print("Passwort nicht sicher genug.")
+            return
+
+        result = registrieren(username, password)
+        print(result)
+        if result == "Registrierung erfolgreich!":
+            show_login()
+    # --- Labels für die Bedingungen --- 
+    pw_length_label = ctk.CTkLabel(reg_frame, text="❌ Mindestens 8 Zeichen")
+    pw_upper_label = ctk.CTkLabel(reg_frame, text="❌ Großbuchstabe")
+    pw_digit_label = ctk.CTkLabel(reg_frame, text="❌ Zahl")
+    pw_special_label = ctk.CTkLabel(reg_frame, text="❌ Sonderzeichen")
+
+    pw_length_label.pack()
+    pw_upper_label.pack()
+    pw_digit_label.pack()
+    pw_special_label.pack()
+
+    def update_pw_check(event=None):
+        password = reg_password_entry.get()
+
+        pw_length_label.configure(text="✅ Mindestens 8 Zeichen" if len(password) >= 8 else "❌ Mindestens 8 Zeichen")
+        pw_upper_label.configure(text="✅ Großbuchstabe" if re.search(r"[A-Z]", password) else "❌ Großbuchstabe")
+        pw_digit_label.configure(text="✅ Zahl" if re.search(r"[0-9]", password) else "❌ Zahl")
+        pw_special_label.configure(text="✅ Sonderzeichen" if re.search(r"[!@#$%^&*(),.?\"_:{}|<>]", password) else "❌ Sonderzeichen")
+
+    # --- Passwortfeld mit Live Update jeden key press ---
+    reg_password_entry.bind("<KeyRelease>", update_pw_check)
     ctk.CTkButton(reg_frame, text="Registrieren", command=handle_reg).pack(pady=(0,6))
     ctk.CTkButton(reg_frame, text="← Zurück", command=show_login).pack()
 
-    # --- Home ---
+        # --- Home ---
     ctk.CTkLabel(home_frame, text="Willkommen auf der Startseite!").pack(pady=20)
     ctk.CTkButton(home_frame, text="Logout", command=show_login).pack()
 
