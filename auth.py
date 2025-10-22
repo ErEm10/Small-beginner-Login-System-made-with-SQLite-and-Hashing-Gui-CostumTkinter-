@@ -22,6 +22,7 @@ def create_gui():
     def show_login(): login_frame.tkraise()
     def show_reg(): reg_frame.tkraise()
     def show_home(): home_frame.tkraise()
+        
     # --- der Kasten für Fehler ---
     feedback_label = ctk.CTkLabel(reg_frame, text="", text_color="white")
     feedback_label.pack(pady=(5, 10))
@@ -91,3 +92,4 @@ def create_gui():
 
     show_login()
     return app
+
