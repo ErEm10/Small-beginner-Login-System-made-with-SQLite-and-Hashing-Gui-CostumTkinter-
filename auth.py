@@ -1,11 +1,11 @@
 import sqlite3
 import hashlib
 import os
+import re
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "database.db")
 
-# Verbindung zur DB
 connection = sqlite3.connect(DB_PATH)
 cursor = connection.cursor()
 
@@ -45,3 +45,14 @@ def login(username, password):
         return "Falsches Passwort."
     else:
         return "Benutzername nicht gefunden."
+
+def passwordstrecheck(username, password):
+    if len(password) <= 8 or len(password) >=20:
+        return False
+    if not re.search(r"[A-Z]", password):
+        return False
+    if not re.search(r"[0-9]", password):
+        return False
+    if not re.search(r"[!@#$%^&*()_,.?\":{}|<>]", password):
+        return False
+    return True
