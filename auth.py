@@ -1,58 +1,93 @@
-import sqlite3
-import hashlib
-import os
+import customtkinter as ctk
+from auth import login, registrieren, passwordstrecheck
 import re
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "database.db")
+def create_gui():
+    app = ctk.CTk()
+    app.geometry("600x400")
+    app.title("Login System")
 
-connection = sqlite3.connect(DB_PATH)
-cursor = connection.cursor()
+    container = ctk.CTkFrame(app)
+    container.pack(expand=True, fill="both")
+    container.grid_rowconfigure(0, weight=1)
+    container.grid_columnconfigure(0, weight=1)
 
-cursor.execute('''
-CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT NOT NULL UNIQUE,
-    password TEXT NOT NULL
-)
-''')
-connection.commit()
+    login_frame = ctk.CTkFrame(container)
+    reg_frame = ctk.CTkFrame(container)
+    home_frame = ctk.CTkFrame(container)
 
-def registrieren(username, password):
-    if not username or not password:
-        return "Bitte Benutzername und Passwort eingeben."
+    for f in (login_frame, reg_frame, home_frame):
+        f.grid(row=0, column=0, sticky="nsew")
 
-    hashed_password = hashlib.sha256(password.encode()).hexdigest()
+    def show_login(): login_frame.tkraise()
+    def show_reg(): reg_frame.tkraise()
+    def show_home(): home_frame.tkraise()
+    # --- der Kasten für Fehler ---
+    feedback_label = ctk.CTkLabel(reg_frame, text="", text_color="white")
+    feedback_label.pack(pady=(5, 10))
 
-    try:
-        cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed_password))
-        connection.commit()
-        return "Registrierung erfolgreich!"
-    except:
-        return "Benutzername existiert bereits."
+    # --- Login ---
+    ctk.CTkLabel(login_frame, text="Login").pack(pady=10)
+    login_entry = ctk.CTkEntry(login_frame, width=200, placeholder_text="Benutzername")
+    login_entry.pack(pady=(0, 8))
+    login_password_entry = ctk.CTkEntry(login_frame, width=200, placeholder_text="Passwort", show="*")
+    login_password_entry.pack(pady=(0, 7))
 
-def login(username, password):
-    if not username or not password:
-        return "Bitte Benutzername und Passwort eingeben."
+    def handle_login():
+        result = login(login_entry.get().strip(), login_password_entry.get().strip())
+        print(result)
+        if result == "Login erfolgreich!":
+            show_home()
 
-    hashed_password = hashlib.sha256(password.encode()).hexdigest()
-    cursor.execute("SELECT password FROM users WHERE username = ?", (username,))
-    result = cursor.fetchone()
+    ctk.CTkButton(login_frame, text="Login", command=handle_login).pack(pady=(0,6))
+    ctk.CTkButton(login_frame, text="→ Keinen Account?", command=show_reg).pack()
 
-    if result and hashed_password == result[0]:
-        return "Login erfolgreich!"
-    elif result:
-        return "Falsches Passwort."
-    else:
-        return "Benutzername nicht gefunden."
+    # --- Registrierung ---
+    ctk.CTkLabel(reg_frame, text="Registrierung").pack(pady=10)
+    reg_username_entry = ctk.CTkEntry(reg_frame, width=200, placeholder_text="Benutzername")
+    reg_username_entry.pack(pady=(0, 8))
+    reg_password_entry = ctk.CTkEntry(reg_frame, width=200, placeholder_text="Passwort", show="*")
+    reg_password_entry.pack(pady=(0, 7))
 
-def passwordstrecheck(username, password):
-    if len(password) <= 8 or len(password) >=20:
-        return False
-    if not re.search(r"[A-Z]", password):
-        return False
-    if not re.search(r"[0-9]", password):
-        return False
-    if not re.search(r"[!@#$%^&*()_,.?\":{}|<>]", password):
-        return False
-    return True
+    def handle_reg():
+        username = reg_username_entry.get().strip()
+        password = reg_password_entry.get().strip()
+
+        if not passwordstrecheck(username, password):
+            feedback_label.configure(text="Passwort erfüllt nicht die Bedingung")
+            return
+
+        result = registrieren(username, password)
+        feedback_label.configure(text=result)
+        if result == "Registrierung erfolgreich!":
+            show_login()
+    # --- Labels für die Bedingungen --- 
+    pw_length_label = ctk.CTkLabel(reg_frame, text="❌ Mindestens 8 Zeichen")
+    pw_upper_label = ctk.CTkLabel(reg_frame, text="❌ Großbuchstabe")
+    pw_digit_label = ctk.CTkLabel(reg_frame, text="❌ Zahl")
+    pw_special_label = ctk.CTkLabel(reg_frame, text="❌ Sonderzeichen")
+
+    pw_length_label.pack()
+    pw_upper_label.pack()
+    pw_digit_label.pack()
+    pw_special_label.pack()
+
+    def update_pw_check(event=None):
+        password = reg_password_entry.get()
+
+        pw_length_label.configure(text="✅ Mindestens 8 Zeichen" if len(password) >= 8 else "❌ Mindestens 8 Zeichen")
+        pw_upper_label.configure(text="✅ Großbuchstabe" if re.search(r"[A-Z]", password) else "❌ Großbuchstabe")
+        pw_digit_label.configure(text="✅ Zahl" if re.search(r"[0-9]", password) else "❌ Zahl")
+        pw_special_label.configure(text="✅ Sonderzeichen" if re.search(r"[!@#$%^&*(),.?\"_:{}|<>]", password) else "❌ Sonderzeichen")
+
+    # --- Passwortfeld mit Live Update jeden key press ---
+    reg_password_entry.bind("<KeyRelease>", update_pw_check)
+    ctk.CTkButton(reg_frame, text="Registrieren", command=handle_reg).pack(pady=(0,6))
+    ctk.CTkButton(reg_frame, text="← Zurück", command=show_login).pack()
+
+        # --- Home ---
+    ctk.CTkLabel(home_frame, text="Willkommen auf der Startseite!").pack(pady=20)
+    ctk.CTkButton(home_frame, text="Logout", command=show_login).pack()
+
+    show_login()
+    return app
